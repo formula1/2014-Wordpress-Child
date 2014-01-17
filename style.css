@@ -1,0 +1,24 @@
+/*
+ Theme Name:   Twenty Fourteen Sam Tobia
+ Theme URI:    http://example.com/twenty-fourteen-child/
+ Description:  Sam Tobia's Altered version of the twentyfourteen
+ Author:       Sam Tobia
+ Author URI:   http://samtobia.com
+ Template:     twentyfourteen
+ Version:      1.0.0
+ Tags:         light, dark, two-columns, right-sidebar, responsive-layout, accessibility-ready
+ Text Domain:  twenty-fourteen-st
+*/
+
+@import url("../twentyfourteen/style.css");
+
+ul.horizontal, ul.stacked, ul.vertical{list-style-type:none;margin:5px 0px;}
+
+.inline, ul.horizontal>li{display:inline-block;}
+ul.vertical>li{display:block;}
+
+ul.stacked{position:relative;}
+ul.stacked>li.selected{position:relative;display:block;}
+ul.stacked>li:not(.selected){position:absolute;display:none;}
+
+.tabbed>.menu>.selected{background-color:#DDD;}
