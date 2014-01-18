@@ -18,6 +18,7 @@
 		<?php
 			get_template_part( "template-parts/charts/daily");
 			get_template_part( "template-parts/charts/weekly");
+			get_template_part( "template-parts/charts/monthly");
 		?>
 		</li>
 		<li id="<?php echo $tabid; ?>content" ><?php

@@ -72,7 +72,6 @@ $days = $wpdb->get_results( "
 			);
 			$dq -= 20;
 			$rectnum++;
-			$counter++;
 		}
 		$area = $map->addChild("area");
 		$area->addAttribute("shape","rect");

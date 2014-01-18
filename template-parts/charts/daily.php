@@ -184,12 +184,13 @@
 
 <?php
 	echo $phtml->asXML();
-	
-	$h =floor($total_hours/3600);
-	$m = round(($total_hours%3600)/60);
+	require_once(dirname(__FILE__)."/../dte.php");
+
+	$di = new DateIntervalEnhanced("PT".$total_hours."S"); 
+	$t = $di->recalculate()->format("%h:%I");
 	
 ?><div class="image-hold inline" style="vertical-align:top;padding:10px;border:1px solid #DDD;">
-<h3>Total hours : <?php echo $h.":".$m; ?></h3>
+<h3>Total hours : <?php echo $t; ?></h3>
 <img src="data:image/png;base64, <?php echo $i64; ?>" usemap="#dailyreport" />
 <?php echo $map->asXML(); ?>
 </div>
