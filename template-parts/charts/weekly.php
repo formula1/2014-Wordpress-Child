@@ -4,9 +4,12 @@ require_once(dirname(__FILE__)."/../dte.php");
 $dow = array('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
 
 
-if(!isset($date)) $date = time();
+if(!isset($_GET["date"])) $date = time();
+else $date = $_GET["date"];
 $date = DateTime::createFromFormat("U",$date);
 
+$tz = (get_option('timezone_string') !== null)?get_option('timezone_string'):'UTC';
+date_default_timezone_set($tz);
 
 $date->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 
@@ -57,6 +60,7 @@ $days = $wpdb->get_results( "
 	$html = simplexml_import_dom($doc);
 	$map = $html->body->map;
 	$dd = array();
+	$date = DateTime::createFromFormat("U",$b);
 	foreach($days as $key=>$d){
 		$rectnum = 0;
 		$dq = $d->day_total / 360;
@@ -73,9 +77,11 @@ $days = $wpdb->get_results( "
 			$dq -= 20;
 			$rectnum++;
 		}
+		$date->modify("+".$d->day." day");
 		$area = $map->addChild("area");
 		$area->addAttribute("shape","rect");
 		$area->addAttribute("coords", (10+$d->day*60).",".floor(240 -$d->day_total / 360).",".(50+$d->day*60).",".(240));
+		$area->addAttribute("href", get_permalink()."?date=".$date->format("U"));
 		
 		$di = new DateIntervalEnhanced("PT".$d->day_total."S"); 
 		$h = floor($d->day_total/3600);
@@ -83,6 +89,7 @@ $days = $wpdb->get_results( "
 		$dd[$d->day] = $di->recalculate()->format("%h:%I");
 		
 		$area->addAttribute("title","Total hours: ".$dd[$d->day]);
+	$date = DateTime::createFromFormat("U",$b);
 	}
 
 	ob_start ();
@@ -104,13 +111,13 @@ $date = DateTime::createFromFormat("U",$b);
 ?>
 <ul class="horizontal cl-weekly-days"><?php
 for($i=0;$i<7;$i++){
-?><li><?php
+?><li><a href="<?php echo get_permalink()."?date=".$date->format("U") ?>"><?php
 echo __( $date->format("l" ))."<br/>"; 
 echo $date->format("d")."<br/>";
 if(isset($dd[$i])){
 echo $dd[$d->day];
 }else echo "0:00";
-?></li><?php
+?></a></li><?php
 $date->modify("+1 day");
 }
 

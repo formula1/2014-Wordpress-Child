@@ -31,7 +31,7 @@ function pie($radius, $amount, $limit){
 				while($fra > 0){
 					$m = min($fra,1);
 					$pie = imagecolorallocatealpha($im, 0xFF, 0x77+$c*(0x0F), $c*(0x1E), 63);
-					imagefilledarc($im, $radius-1, $radius-1, $radius*2, $radius*2, -90, -90+round(360*$fra),  $pie, IMG_ARC_PIE);
+					imagefilledarc($im, $radius-1, $radius-1, $radius*2, $radius*2, -90, -90+round(360*$fra)+1,  $pie, IMG_ARC_PIE);
 					$fra--;
 					$c++;
 				}

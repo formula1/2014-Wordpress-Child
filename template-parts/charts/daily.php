@@ -1,5 +1,6 @@
 <?php
-	if(!isset($date)) $date = time();
+	if(!isset($_GET["date"])) $date = time();
+	else $date = $_GET["date"];
 	$date = DateTime::createFromFormat("U",$date);
 	$tz = (get_option('timezone_string') !== null)?get_option('timezone_string'):'UTC';
 	date_default_timezone_set($tz);

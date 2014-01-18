@@ -2,7 +2,7 @@
 include_once(dirname(__FILE__)."/../Calander.php");
 include_once dirname(__FILE__)."/pie.php";
 
-$url = get_permalink( get_the_ID());
+$url = get_permalink();
 
 $is = (is_author())?"devuser":"project";
 $request = (is_author())?"project":"devuser";
@@ -25,7 +25,7 @@ class dailyclockins extends CalenderUI{
 		}else 		$i64 = pie(25, 0, 1);
 
 		
-		return '<a class="dailychoice" href="'.get_permalink( get_the_ID()).'?time='.$ds.'">
+		return '<a class="dailychoice" href="'.get_permalink().'?time='.$ds.'">
 			<img src="data:image/jpeg;base64, '.$i64.'" />
 		</a>';			
 		
@@ -37,8 +37,8 @@ class dailyclockins extends CalenderUI{
 
 
 
-if(isset($_GET["time"])){
-$dizzle = DateTime::createFromFormat("U", $_GET["time"]);
+if(isset($_GET["date"])){
+$dizzle = DateTime::createFromFormat("U", $_GET["date"]);
 $month = $dizzle->format("m");
 $year = $dizzle->format("Y");
 }else{
@@ -85,3 +85,7 @@ $md_dury = $wpdb->get_results( "
 
 echo $cal->get_calender($month,$year);?>
 </div>
+<?php
+
+date_default_timezone_set('UTC');
+?>
