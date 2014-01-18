@@ -1,7 +1,8 @@
 <?php
 	if(!isset($date)) $date = time();
 	$date = DateTime::createFromFormat("U",$date);
-	date_default_timezone_set(get_option('timezone_string'));
+	$tz = (get_option('timezone_string') !== null)?get_option('timezone_string'):'UTC';
+	date_default_timezone_set($tz);
 	$date->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 	$date->setTime(0,0,0);
 	$b = $date->format("U");
@@ -27,10 +28,10 @@
 
 	$clockins = $wpdb->get_results( "
 		SELECT UNIX_TIMESTAMP( starttime ) AS starttime, duration, devuser, project 
-		FROM clock_ins WHERE ((devuser =1)
+		FROM clock_ins WHERE ((".$is." =".$id.")
 		AND ( UNIX_TIMESTAMP( starttime ) 
-			BETWEEN 1389916800 
-			AND 1390003200
+			BETWEEN ".$b." 
+			AND ".$e."
 			)
 		)", "OBJECT" );
 	foreach($clockins as $clockin){

@@ -17,6 +17,7 @@
 		<li id="<?php echo $tabid; ?>clockin" class="selected">
 		<?php
 			get_template_part( "template-parts/charts/daily");
+			get_template_part( "template-parts/charts/weekly");
 		?>
 		</li>
 		<li id="<?php echo $tabid; ?>content" ><?php

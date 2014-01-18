@@ -22,3 +22,8 @@ ul.stacked>li.selected{position:relative;display:block;}
 ul.stacked>li:not(.selected){position:absolute;display:none;}
 
 .tabbed>.menu>.selected{background-color:#DDD;}
+
+
+
+
+.cl-weekly-days>li{word-wrap: normal;vertical-align:top;width:50px;height:15px;margin:0px 0px 0px 10px;text-align:center;overflow:visible;font-size:10px}
