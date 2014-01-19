@@ -28,6 +28,11 @@
 	$request = (is_author())?"project":"devuser";
 
 $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
+	if(is_author()){
+		$dev = $id;
+	}else{
+		$proj = $id;
+	}
 
 
 	$clockins = $wpdb->get_results( "
@@ -50,7 +55,7 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 				$name = get_the_author_meta("display_name",$clockin->$request);
 				$href = get_author_posts_url( $clockin->$request);
 				
-			}else{			
+			}else{
 				$name = get_the_title($clockin->$request);
 				$href = get_permalink( $clockin->$request);
 			}
@@ -76,17 +81,24 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 
 	$scolor = imagecolorallocate($im, 0x00, 0xff, 0x00);
 	$ecolor = imagecolorallocate($im, 0xff, 0x00, 0x00);
+
+	$comcol = imagecolorallocate($im, 0xFF, 0xFF, 0xFF);
 	
-	$ccol = imagecolorallocate($im, 0xFF, 0x77, 0x00);
-	$scol = imagecolorallocate($im, 0x77, 0x77, 0x77);
-	$dcol = imagecolorallocate($im, 0x00, 0x00, 0xFF);
+	$createcol = imagecolorallocate($im, 0xFF, 0x77, 0x00);
+	$savecol = imagecolorallocate($im, 0x77, 0x77, 0x77);
+	$deletecol = imagecolorallocate($im, 0x00, 0x00, 0xFF);
 
 	imagesetthickness($im, 3);
 
 
 	$offset = 10;
 	$num = 0;
-	foreach($lines as $line){
+	foreach($lines as $key=>$line){
+		if(is_author()){
+			$proj = $key;
+		}else{
+			$dev = $key;
+		}
 		$offset = 10 + $num*20;
 		$num++;
 		imageline($im, 0,$offset,864*$scale,$offset, $inactive);
@@ -144,6 +156,8 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 			}else{
 				$area->addAttribute("title","Still Going:".$etf);
 			}
+
+			
 /*			$works = DevWork::find(array("clockin"=>$cl->ID), 100);
 			foreach($works as $w){
 				if($w->time-$b < 0 || $w->time-$b > 86400) continue;
@@ -172,6 +186,59 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 			}
 */			
 		}
+		
+		$proj = get_post($proj);
+		$meta = get_user_meta($dev, 'clockin');
+		$dev = $meta[0]["github"];
+		$token = $meta[0]["token"];
+		print_r($meta);
+		echo $proj->post_title;
+		$h = array();
+		array_push($h, 'User-Agent: Clock-In-Prep');
+		$url = "https://api.github.com/repos/".$proj->post_title."/git/commits";
+		$url .= "?author=".$dev;
+		$url .= "&since=".$date->format('Y-m-d').'T00:00:00Z';
+		$date->modify("+1 days");
+		$url .= "&until=".$date->format('Y-m-d').'T00:00:00Z';
+		$url .="&access_token=".$token;
+
+		echo $url;
+	
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		// Set so curl_exec returns the result instead of outputting it.
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $h);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+		// Get the response and close the channel.
+		$response = curl_exec($ch);
+		$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+		
+		if($http_status != 200 && $http_status != 301){
+			throw new Exception($http_status);
+		}
+		
+		$response = json_decode($response);
+		foreach($response as $commit){
+			$time = DateTime::createFromFormat("Y-m-d*H:i:s*",$commit->committer->date);
+			$slx = $scale*($time->format("U")-$b)/100;
+			$col = $comcol;
+			$col = $dcol;
+
+			imagefilledellipse ( $im , 
+				$slx, $offset,
+				8 , 8,
+				$col
+			);
+
+			$area = $mizzle->addChild("area");
+			$area->addAttribute("shape","circle");
+			$area->addAttribute("coords", ($slx).",".($offset).","."8");
+			$area->addAttribute("title","Commit:".$time->format("H:i"));
+		}
+
 	}
 				
 		
