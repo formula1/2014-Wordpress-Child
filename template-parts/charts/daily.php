@@ -1,15 +1,16 @@
 <?php
+	require_once(dirname(__FILE__)."/../dte.php");
+
+
 	if(!isset($_GET["date"])) $date = time();
 	else $date = $_GET["date"];
 	$date = DateTime::createFromFormat("U",$date);
-	$tz = (get_option('timezone_string') !== null)?get_option('timezone_string'):'UTC';
-	date_default_timezone_set($tz);
 	$date->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 	$date->setTime(0,0,0);
 	$b = $date->format("U");
 	$date->modify("+1 days");
 	$e = $date->format("U");
-	
+	$date->modify("-1 days");
 
 	$doc = new DOMDocument();
 	$doc->loadHTML("<div class=\"projects list inline\" style=\"vertical-align:top;padding:10px;border:1px solid #DDD;\"></div>");
@@ -22,18 +23,20 @@
 	$total_hours = 0;
 	$phtml->addChild("h3", "Projects");
 	$ul = $phtml->addChild("ul");
+	$ul->addAttribute("class","vertical");
 	$is = (is_author())?"devuser":"project";
 	$request = (is_author())?"project":"devuser";
 
-	$id = get_the_ID();
+$id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
+
 
 	$clockins = $wpdb->get_results( "
 		SELECT UNIX_TIMESTAMP( starttime ) AS starttime, duration, devuser, project 
 		FROM clock_ins WHERE ((".$is." =".$id.")
-		AND ( UNIX_TIMESTAMP( starttime ) 
-			BETWEEN ".$b." 
-			AND ".$e."
-			)
+		AND ( DAYOFMONTH( starttime ) = ".$date->format("j").
+//			BETWEEN ".$b." 
+//			AND ".$e."
+"			)
 		)", "OBJECT" );
 	foreach($clockins as $clockin){
 		if(array_key_exists($clockin->$request, $lines)){
@@ -51,6 +54,7 @@
 				$name = get_the_title($clockin->$request);
 				$href = get_permalink( $clockin->$request);
 			}
+			if(strlen($name) > 20) $name = substr($name,0,17)."...";
 			$a = $li->addChild("a", $name);
 			$a->addAttribute("href",$href);
 		}
@@ -88,7 +92,7 @@
 		imageline($im, 0,$offset,864*$scale,$offset, $inactive);
 		foreach($line as $cl){
 			$s_mm = max($cl->starttime-$b, 0);
-			$slx = $scale*$s_mm/100;
+			$slx = round($scale*$s_mm/100);
 			
 			imagefilledrectangle ( $im , 
 				$slx-4, $offset-4,
@@ -107,7 +111,7 @@
 				$active
 			);
 
-			$total_hours += ($e_mm - $s_mm);
+			$total_hours += $stopped - $cl->starttime;
 			
 
 			imagefilledrectangle ( $im , 
@@ -185,7 +189,6 @@
 
 <?php
 	echo $phtml->asXML();
-	require_once(dirname(__FILE__)."/../dte.php");
 
 	$di = new DateIntervalEnhanced("PT".$total_hours."S"); 
 	$t = $di->recalculate()->format("%h:%I");

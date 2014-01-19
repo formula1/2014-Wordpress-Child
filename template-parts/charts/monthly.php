@@ -2,32 +2,37 @@
 include_once(dirname(__FILE__)."/../Calander.php");
 include_once dirname(__FILE__)."/pie.php";
 
-$url = get_permalink();
+global $url;
+$url = (is_author())?get_author_posts_url(get_the_author_meta( 'ID' )):get_permalink();
+
 
 $is = (is_author())?"devuser":"project";
 $request = (is_author())?"project":"devuser";
-$id = get_the_ID();
+$id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 global $cl_monthlycounter;
 if(!isset($cl_monthlycounter)) $cl_monthlycounter=0;
 else $cl_monthlycounter++;
 
-$class = "dailyclockins".$cl_monthlycounter++;
 
 class dailyclockins extends CalenderUI{
 
 	public function day_data($string){
+		global $url;
 		$day = new DateTime($string);
 		$day->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+		$day->setTime(0,0,0);
 		$ds = $day->format("U");
 		global $md_dury;
 		if(isset($md_dury[$day->format("j")])){
 		$i64 = pie(25, intval($md_dury[$day->format("j")]->day_total), 24*60*60);
-		}else 		$i64 = pie(25, 0, 1);
+			return '<a class="dailychoice" href="'.$url.'?date='.$ds.'">
+				<img src="data:image/jpeg;base64, '.$i64.'" />
+			</a>';
+		}else{
+			$i64 = pie(25, 0, 1);
+		return '<img src="data:image/jpeg;base64, '.$i64.'" />';
 
-		
-		return '<a class="dailychoice" href="'.get_permalink().'?time='.$ds.'">
-			<img src="data:image/jpeg;base64, '.$i64.'" />
-		</a>';			
+		}
 		
 //		$date = new DateTime();
 //		$date->modify
@@ -79,7 +84,7 @@ $md_dury = $wpdb->get_results( "
 	AND	( UNIX_TIMESTAMP( starttime )  BETWEEN ".$start->format("U")." AND ".$after->format("U")." )
 	)GROUP BY DAYOFMONTH(starttime)
 	
-	LIMIT 32
+	LIMIT 50
 	", "OBJECT_K" );
 	
 

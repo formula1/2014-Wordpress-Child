@@ -8,12 +8,7 @@ if(!isset($_GET["date"])) $date = time();
 else $date = $_GET["date"];
 $date = DateTime::createFromFormat("U",$date);
 
-$tz = (get_option('timezone_string') !== null)?get_option('timezone_string'):'UTC';
-date_default_timezone_set($tz);
-
 $date->setTimeZone(new DateTimeZone(date_default_timezone_get()));
-
-
 $date->setTime(0,0,0);
 $day_of_week = $date->format("w");
 $date->modify(-$day_of_week." day");
@@ -24,7 +19,8 @@ $e = $date->format("U");
 
 $is = (is_author())?"devuser":"project";
 $request = (is_author())?"project":"devuser";
-$id = get_the_ID();
+$permalink = (is_author())?get_author_posts_url(get_the_author_meta( 'ID' )):get_permalink();
+$id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 
 $days = $wpdb->get_results( "
 	SELECT DAYOFWEEK( starttime ) AS day , 
@@ -38,7 +34,7 @@ $days = $wpdb->get_results( "
 		( ".$is." = ".$id.")
 	AND	( UNIX_TIMESTAMP( starttime )  BETWEEN ".$b." AND ".$e." )
 	)GROUP BY DAYOFWEEK(starttime)
-", "OBJECT" );
+", "OBJECT_K" );
 	
 //Parsing into days
 //creating the image with map
@@ -62,6 +58,7 @@ $days = $wpdb->get_results( "
 	$dd = array();
 	$date = DateTime::createFromFormat("U",$b);
 	foreach($days as $key=>$d){
+		$day = $key-1;
 		$rectnum = 0;
 		$dq = $d->day_total / 360;
 		while($dq > 0){
@@ -70,25 +67,25 @@ $days = $wpdb->get_results( "
 			}else $height = 240 - ($rectnum+1)*20;
 			
 			imagefilledrectangle ( $im , 
-				10+$d->day*60, 240-$rectnum*20,
-				50+$d->day*60, $height,
+				10+$day*60, 240-$rectnum*20,
+				50+$day*60, $height,
 				$colors[$rectnum]
 			);
 			$dq -= 20;
 			$rectnum++;
 		}
-		$date->modify("+".$d->day." day");
+		$date->modify("+".$day." day");
 		$area = $map->addChild("area");
 		$area->addAttribute("shape","rect");
-		$area->addAttribute("coords", (10+$d->day*60).",".floor(240 -$d->day_total / 360).",".(50+$d->day*60).",".(240));
-		$area->addAttribute("href", get_permalink()."?date=".$date->format("U"));
+		$area->addAttribute("coords", (10+$day*60).",".floor(240 -$d->day_total / 360).",".(50+$day*60).",".(240));
+		$area->addAttribute("href", $permalink."?date=".$date->format("U"));
 		
 		$di = new DateIntervalEnhanced("PT".$d->day_total."S"); 
 		$h = floor($d->day_total/3600);
 		$m = round(($d->day_total%3600)/60);
-		$dd[$d->day] = $di->recalculate()->format("%h:%I");
+		$dd[$day] = $di->recalculate()->format("%h:%I");
 		
-		$area->addAttribute("title","Total hours: ".$dd[$d->day]);
+		$area->addAttribute("title","Total hours: ".$dd[$day]);
 	$date = DateTime::createFromFormat("U",$b);
 	}
 
@@ -105,20 +102,24 @@ $date = DateTime::createFromFormat("U",$b);
 ?>	
 <div class="cl-weekly-report">
 <h1><?php echo __("Weekly Report"); ?></h1>
-<h6><?php echo __("Starting on")." ".$date->format("m/d/Y" ); ?></h6>
+<span><?php echo __("Starting on")." ".$date->format("m/d/Y" ); ?></span><br/>
 <img src="data:image/png;base64, <?php echo $i64; ?>" usemap="#weeklyreport" />
 <?php echo $map->asXML();
 ?>
 <ul class="horizontal cl-weekly-days"><?php
 for($i=0;$i<7;$i++){
-?><li><a href="<?php echo get_permalink()."?date=".$date->format("U") ?>"><?php
+
+?><li><a href="<?php echo $permalink."?date=".$date->format("U") ?>"><?php
 echo __( $date->format("l" ))."<br/>"; 
 echo $date->format("d")."<br/>";
 if(isset($dd[$i])){
-echo $dd[$d->day];
+echo $dd[$i];
 }else echo "0:00";
 ?></a></li><?php
 $date->modify("+1 day");
+
+
+
 }
 
 ?></ul>
