@@ -191,18 +191,14 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 		$meta = get_user_meta($dev, 'clockin');
 		$dev = $meta[0]["github"];
 		$token = $meta[0]["token"];
-		print_r($meta);
-		echo $proj->post_title;
 		$h = array();
 		array_push($h, 'User-Agent: Clock-In-Prep');
-		$url = "https://api.github.com/repos/".$proj->post_title."/git/commits";
+		$url = "https://api.github.com/repos/".$proj->post_title."/commits";
 		$url .= "?author=".$dev;
 		$url .= "&since=".$date->format('Y-m-d').'T00:00:00Z';
 		$date->modify("+1 days");
 		$url .= "&until=".$date->format('Y-m-d').'T00:00:00Z';
 		$url .="&access_token=".$token;
-
-		echo $url;
 	
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
@@ -217,15 +213,14 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 		curl_close($ch);
 		
 		if($http_status != 200 && $http_status != 301){
-			throw new Exception($http_status);
+			echo("<br/>".$http_status);
+			die();
 		}
-		
 		$response = json_decode($response);
 		foreach($response as $commit){
-			$time = DateTime::createFromFormat("Y-m-d*H:i:s*",$commit->committer->date);
+			$time = DateTime::createFromFormat("Y-m-d*H:i:s*",$commit->commit->committer->date);
 			$slx = $scale*($time->format("U")-$b)/100;
 			$col = $comcol;
-			$col = $dcol;
 
 			imagefilledellipse ( $im , 
 				$slx, $offset,
