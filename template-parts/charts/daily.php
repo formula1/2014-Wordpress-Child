@@ -1,5 +1,6 @@
 <?php
 	require_once(dirname(__FILE__)."/../dte.php");
+	global $cl_utils;
 
 
 	if(!isset($_GET["date"])) $date = time();
@@ -189,49 +190,38 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 		
 		$proj = get_post($proj);
 		$meta = get_user_meta($dev, 'clockin');
+		$devid = $dev;
 		$dev = $meta[0]["github"];
 		$token = $meta[0]["token"];
-		$h = array();
-		array_push($h, 'User-Agent: Clock-In-Prep');
 		$url = "https://api.github.com/repos/".$proj->post_title."/commits";
 		$url .= "?author=".$dev;
 		$url .= "&since=".$date->format('Y-m-d').'T00:00:00Z';
 		$date->modify("+1 days");
 		$url .= "&until=".$date->format('Y-m-d').'T00:00:00Z';
-		$url .="&access_token=".$token;
-	
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url);
-		// Set so curl_exec returns the result instead of outputting it.
-		curl_setopt($ch, CURLOPT_HTTPHEADER, $h);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-		// Get the response and close the channel.
-		$response = curl_exec($ch);
-		$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
+		try{
+			$response = $cl_utils::getUrl($url, $devid);
+			$response = json_decode($response);
+			foreach($response as $commit){
+				$time = DateTime::createFromFormat("Y-m-d*H:i:s*",$commit->commit->committer->date);
+				$slx = $scale*($time->format("U")-$b)/100;
+				$col = $comcol;
+
+				imagefilledellipse ( $im , 
+					$slx, $offset,
+					8 , 8,
+					$col
+				);
+
+				$area = $mizzle->addChild("area");
+				$area->addAttribute("shape","circle");
+				$area->addAttribute("coords", ($slx).",".($offset).","."8");
+				$area->addAttribute("title","Commit:".$time->format("H:i"));
+				
+
+				
+			}
+		}catch(Exception $e){
 		
-		if($http_status != 200 && $http_status != 301){
-			echo("<br/>".$http_status);
-			die();
-		}
-		$response = json_decode($response);
-		foreach($response as $commit){
-			$time = DateTime::createFromFormat("Y-m-d*H:i:s*",$commit->commit->committer->date);
-			$slx = $scale*($time->format("U")-$b)/100;
-			$col = $comcol;
-
-			imagefilledellipse ( $im , 
-				$slx, $offset,
-				8 , 8,
-				$col
-			);
-
-			$area = $mizzle->addChild("area");
-			$area->addAttribute("shape","circle");
-			$area->addAttribute("coords", ($slx).",".($offset).","."8");
-			$area->addAttribute("title","Commit:".$time->format("H:i"));
 		}
 
 	}
