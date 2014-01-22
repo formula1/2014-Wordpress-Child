@@ -33,8 +33,9 @@ abstract class CalenderUI{
 		/* keep going with days.... */
 		for($list_day = 1; $list_day <= $days_in_month; $list_day++):
 			$calendar.= '<td class="calendar-day" style="position:relative">';
+			$time = DateTime::createFromFormat("Y-n-j", $year."-".$month."-".$list_day);
 				/* add in the day number */
-				$calendar.= '<div class="day-number">'.$list_day.'</div>';
+				$calendar.= '<div class="day-number"><time datetime="'.$time->format(DATE_W3C).'">'.$list_day.'</time></div>';
 				/** QUERY THE DATABASE FOR AN ENTRY FOR THIS DAY !!  IF MATCHES FOUND, PRINT THEM !! **/
 				$calendar .= '<p>'.$this->day_data($year."-".$month."-".$list_day).'</p>';
 	//			$calendar.= str_repeat('<p> </p>',2);
