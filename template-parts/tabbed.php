@@ -16,9 +16,7 @@
 	<ul class="items stacked">
 		<li id="<?php echo $tabid; ?>clockin" class="selected">
 		<?php
-			get_template_part( "template-parts/charts/daily");
-			get_template_part( "template-parts/charts/weekly");
-			get_template_part( "template-parts/charts/monthly");
+			get_template_part( "template-parts/clockin-archive-part");
 		?>
 		</li>
 		<li id="<?php echo $tabid; ?>content" ><?php

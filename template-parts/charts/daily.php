@@ -55,8 +55,6 @@ ob_start();?>
 			}
 			$current = $clockin->$request;
 			if(strlen($name) > 20) $name = substr($name,0,17)."...";
-			array_push($js_ticks, $name);
-			array_push($js_lines, array());
 ?><a href="<?php echo $href; ?>"><?php echo $name ?></a></h4><ul>
 <?php	}
 	$start = DateTime::createFromFormat("U", $clockin->starttime);
@@ -78,7 +76,7 @@ ob_start();?>
 		$url .= "&since=".$start->format(DATE_W3C);
 		$url .= "&until=".$stop->format(DATE_W3C);
 		try{
-			$response = $cl_utils::getUrl($url, $devid);
+			$response = $cl_utils::getUrl($url, $dev);
 			$response = json_decode($response);
 			foreach($response as $commit){
 				$committime = DateTime::createFromFormat(DATE_W3C,$commit->commit->committer->date);
@@ -134,6 +132,7 @@ $content = ob_get_clean();
 				data.push(null);
 			});
 		});
+				
 		console.log(data);
 		$.plot(".daily.<?php echo $is.$id ?>>.chart", [ data ], {
 			series: {
@@ -142,9 +141,16 @@ $content = ob_get_clean();
 					lineWidth:50
 				}
 			},
+			grid:{
+			markings: function (axes) {
+				var markings = [];
+				for (var x = Math.floor(axes.xaxis.min); x < axes.xaxis.max; x += (120*60*1000))
+					markings.push({ xaxis: { from: x, to: x + (60*60*1000) } });
+				return markings;
+			}},
 			xaxis: {
 				min:daystart,max:dayend,
-				mode: "time"
+				mode: "time",
 			},
 
 			yaxis: {

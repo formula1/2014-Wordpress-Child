@@ -22,105 +22,147 @@ $request = (is_author())?"project":"devuser";
 $permalink = (is_author())?get_author_posts_url(get_the_author_meta( 'ID' )):get_permalink();
 $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 
-$days = $wpdb->get_results( "
-	SELECT DAYOFWEEK( starttime ) AS day , 
-	SUM( CASE duration
-		WHEN 0 THEN	UNIX_TIMESTAMP()-UNIX_TIMESTAMP(starttime)
-		ELSE	duration
-		END
-	) AS day_total 
-	FROM clock_ins
-	WHERE ( 
-		( ".$is." = ".$id.")
-	AND	( UNIX_TIMESTAMP( starttime )  BETWEEN ".$b." AND ".$e." )
-	)GROUP BY DAYOFWEEK(starttime)
-", "OBJECT_K" );
-	
-//Parsing into days
-//creating the image with map
-	$im = @imagecreate(430, 240)
-		or die("Cannot Initialize new GD image stream");
-	
-	$background_color = imagecolorallocate($im, 0xFF, 0xFF, 0xFF);
+$cis = $wpdb->get_results( "
+SELECT ".$request.", UNIX_TIMESTAMP(starttime) as starttime, UNIX_TIMESTAMP(stoptime) as stoptime
+FROM clock_ins
+WHERE ( 
+	( ".$is." = ".$id.")
+	AND	( 
+			UNIX_TIMESTAMP( starttime )  BETWEEN ".$b." AND ".$e." 
+		OR	UNIX_TIMESTAMP( stoptime )  BETWEEN ".$b." AND ".$e." 
+	)
+)
+", "OBJECT");
 
-	$colors = array(
-		imagecolorallocate($im, 0xFF, 0x00, 0x00),
-		imagecolorallocate($im, 0xFF, 0x77, 0x00),
-		imagecolorallocate($im, 0xFF, 0xFF, 0x00),
-		imagecolorallocate($im, 0x00, 0xFF, 0x00),
-		imagecolorallocate($im, 0x00, 0x00, 0xFF),
-		imagecolorallocate($im, 0xFF, 0x00, 0xFF)
-	);
-	$doc = new DOMDocument();
-	$doc->loadHTML("<map name=\"weeklyreport\"></map>");
-	$html = simplexml_import_dom($doc);
-	$map = $html->body->map;
+
+	$prepdays = array();
 	$dd = array();
-	$date = DateTime::createFromFormat("U",$b);
-	foreach($days as $key=>$d){
-		$day = $key-1;
-		$rectnum = 0;
-		$dq = $d->day_total / 360;
-		while($dq > 0){
-			if($rectnum == 5 || $dq < 20){
-				$height = 240 - $d->day_total/360;
-			}else $height = 240 - ($rectnum+1)*20;
-			
-			imagefilledrectangle ( $im , 
-				10+$day*60, 240-$rectnum*20,
-				50+$day*60, $height,
-				$colors[$rectnum]
-			);
-			$dq -= 20;
-			$rectnum++;
-		}
-		$date->modify("+".$day." day");
-		$area = $map->addChild("area");
-		$area->addAttribute("shape","rect");
-		$area->addAttribute("coords", (10+$day*60).",".floor(240 -$d->day_total / 360).",".(50+$day*60).",".(240));
-		$area->addAttribute("href", $permalink."?date=".$date->format("U"));
-		
-		$di = new DateIntervalEnhanced("PT".$d->day_total."S"); 
-		$h = floor($d->day_total/3600);
-		$m = round(($d->day_total%3600)/60);
-		$dd[$day] = $di->recalculate()->format("%h:%I");
-		
-		$area->addAttribute("title","Total hours: ".$dd[$day]);
-	$date = DateTime::createFromFormat("U",$b);
+	$day = 24*60*60;
+	$now = new DateTime("NOW");
+	
+	function createDay($day, $time, &$dd, $name){
+		if(!isset($dd[$day])) $dd[$day] = array("#total"=>0);
+
+
+		if(!isset($dd[$day][$name])) $dd[$day][$name] = $time;
+		else $dd[$day][$name] += $time;
+
+		$dd[$day]["#total"] +=$time;
 	}
+	
+	foreach($cis as $k=>$ci){
+		if(is_author()) $name = get_the_title($ci->$request);
+		else $name = get_the_author_meta("display_name",$ci->$request);
 
-	ob_start ();
-	imagepng ($im);
-	$image_data = ob_get_contents ();
-	imagedestroy($im);
-	ob_end_clean ();
-
-	$i64 = base64_encode ($image_data);
-
+		$st = DateTime::createFromFormat("U", $ci->starttime);
+		if($ci->stoptime == 0)
+			$et = $now;
+		else
+			$et = DateTime::createFromFormat("U", $ci->stoptime);
+		if($st->format("w") != $et->format("w")){
+			$leftover = $st->format("U")%86400;
+			createDay($st->format("w"), 86400 - $leftover, $dd, $name);
+			$daystart = DateTime::createFromFormat("U", $st->format("U")-$leftover + 86400);
+			$w = $st->format("w");
+			$counter = 0;
+			while($et->format("w") >= $daystart->format("w") && $w+$counter < 7 ){
+				createDay($daystart->format("w"), min(86400, $et->format("U")-$daystart->format("U")), $dd, $name);
+				$daystart->modify("+1 day");
+				$counter++;
+			}
+		}else createDay($st->format("w"), $et->format("U")-$st->format("U"), $dd, $name);
+	}
+	
 	
 $date = DateTime::createFromFormat("U",$b);	
 ?>	
-<div class="cl-weekly-report">
+<div class="cl-weekly-report <?php echo $is.$id; ?>">
 <h1><?php echo __("Weekly Report"); ?></h1>
 <span><?php echo __("Starting on")." ".$date->format("m/d/Y" ); ?></span><br/>
-<img src="data:image/png;base64, <?php echo $i64; ?>" usemap="#weeklyreport" />
-<?php echo $map->asXML();
-?>
 <ul class="horizontal cl-weekly-days"><?php
 for($i=0;$i<7;$i++){
 
-?><li><a href="<?php echo $permalink."?date=".$date->format("U") ?>"><?php
-echo __( $date->format("l" ))."<br/>"; 
-echo $date->format("d")."<br/>";
-if(isset($dd[$i])){
-echo $dd[$i];
-}else echo "0:00";
-?></a></li><?php
+	?><li><h4><?php
+	if(isset($dd[$i])){ 
+		?><a href="<?php echo $permalink."?date=".$date->format("U"); ?>"><?php
+	}?>
+		<time class="title" datetime="<?php echo $date->format(DATE_W3C); ?>"><?php 
+	echo __( $date->format("l" ))."<br/>"; 
+	echo $date->format("d")."</time><br/>";
+	if(isset($dd[$i])){
+		$di = new DateIntervalEnhanced("PT".$dd[$i]["#total"]."S"); 
+		$di->recalculate();
+			?><time datetime="<?php echo $di->format("%h:%i:%s"); ?>"><?php echo $di->format("%h:%I"); ?></time>
+		</a><?php
+	}else{ ?>
+		<time datetime='0:0:0'>no work</time><?php
+	}
+?></h4><?php 
+	if(isset($dd[$i])){ 
+	?><ul><?php
+		foreach($dd[$i] as $k=>$v){
+		if($k == "#total") continue;
+		$di = new DateIntervalEnhanced("PT".$v."S"); 
+		$di->recalculate();
+
+		?><li><span class="label"><?php echo $k; ?></span>, <span class="value" >
+			<time datetime="<?php echo $di->format("%h:%i:%s"); ?>"><?php echo $di->format("%h:%I"); ?></time></span></li>
+		<?php
+		}
+	?></ul><?php
+	}
+?></li><?php
 $date->modify("+1 day");
-
-
-
 }
 
 ?></ul>
+<div class="chart" style="width100%;height:200px;">
 </div>
+</div>
+<script type="text/javascript">
+
+
+	jQuery(function($) {
+		var data = [];
+		var ref = [];
+		var ticks = [];
+		$(".cl-weekly-report.<?php echo $is.$id ?>>ul>li").each(function( indexli, value ) {
+			var el = $(this);
+			var title = moment(el.find("h4 time.title").attr("datetime"));
+			var elems = el.find("ul>li");
+			ticks.push([indexli, title.date()+"/"+(title.month()+1)]);
+			if(elems.length > 0){
+				elems.each(function( indexel, value){
+					var key = $(this).find(".label").html();
+					if(typeof ref[key] == "undefined"){ ref[key] = ref.length; data[ref[key]] = [];}
+					data[ref[key]].push([indexli, moment.duration($(this).find(".value>time").attr("datetime")).asMilliseconds()]);
+				});
+			}
+		});
+		console.log(ticks);
+		$.plot(".cl-weekly-report.<?php echo $is.$id ?>>.chart", data, {
+			series: {
+				stack: 0,
+				lines: {
+					show: false,
+					fill: true,
+					steps: false
+				},
+				bars: {
+					show: true,
+					barWidth: 0.6
+				}
+			},
+			yaxis: {
+				mode: "time"
+			},
+
+			xaxis: {
+				min:0,max:6,
+				ticks: ticks
+			}
+		});
+	});
+
+	
+</script>
