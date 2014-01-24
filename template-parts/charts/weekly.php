@@ -23,13 +23,14 @@ $permalink = (is_author())?get_author_posts_url(get_the_author_meta( 'ID' )):get
 $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 
 $cis = $wpdb->get_results( "
-SELECT ".$request.", UNIX_TIMESTAMP(starttime) as starttime, UNIX_TIMESTAMP(stoptime) as stoptime
+SELECT ".$request.", starttime, stoptime
 FROM clock_ins
 WHERE ( 
 	( ".$is." = ".$id.")
 	AND	( 
-			UNIX_TIMESTAMP( starttime )  BETWEEN ".$b." AND ".$e." 
-		OR	UNIX_TIMESTAMP( stoptime )  BETWEEN ".$b." AND ".$e." 
+			starttime BETWEEN ".$b." AND ".$e." 
+		OR	stoptime BETWEEN ".$b." AND ".$e." 
+		OR  (stoptime = 0 && UNIX_TIMESTAMP() BETWEEN ".$b." AND ".$e.")
 	)
 )
 ", "OBJECT");

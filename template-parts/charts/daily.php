@@ -8,6 +8,7 @@
 	$date = DateTime::createFromFormat("U",$date);
 	$date->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 	$date->setTime(0,0,0);
+	$ed = $_GET["date"]+86400;
 
 	$is = (is_author())?"devuser":"project";
 	$request = (is_author())?"project":"devuser";
@@ -26,12 +27,15 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 
 
 	$clockins = $wpdb->get_results( "
-		SELECT UNIX_TIMESTAMP( starttime ) AS starttime, UNIX_TIMESTAMP(stoptime) AS stoptime, duration, devuser, project 
+		SELECT starttime, stoptime, devuser, project 
 		FROM clock_ins WHERE (
-		(".$is." =".$id.")
-		AND ( DAYOFMONTH( starttime ) = ".$date->format("j")." OR DAYOFMONTH(stoptime) = ".$date->format("j").")
-		)
-		ORDER BY ".$request.",starttime ASC
+			(".$is." =".$id.")
+			AND(
+				starttime BETWEEN ".$date->format("U")." AND ".$ed." 
+				OR	stoptime  BETWEEN ".$date->format("U")." AND ".$ed." 
+				OR  (stoptime = 0 && UNIX_TIMESTAMP() BETWEEN ".$date->format("U")." AND ".$ed.")
+			)
+		)ORDER BY ".$request.",starttime ASC
 		", "OBJECT" );
 
 ob_start();?>

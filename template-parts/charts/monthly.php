@@ -99,32 +99,15 @@ else $after = new DateTime('01-1-'.($year+1));
 <?php 
 $cal = new dailyclockins();
 
-global $md_dury;
-/*$md_dury = $wpdb->get_results( "
-	SELECT DAYOFMONTH( starttime ) AS day , 
-	SUM( CASE duration
-		WHEN 0 THEN	UNIX_TIMESTAMP()-UNIX_TIMESTAMP(starttime)
-		ELSE	duration
-		END
-	) AS day_total 
-	FROM clock_ins
-	WHERE ( 
-		( ".$is." = ".$id.")
-	AND	( UNIX_TIMESTAMP( starttime )  BETWEEN ".$start->format("U")." AND ".$after->format("U")." )
-	)GROUP BY DAYOFMONTH(starttime)
-	
-	LIMIT 50
-	", "OBJECT_K" );
-*/
 global $mdury;
-$mdury = $wpdb->get_results("SELECT DAYOFMONTH( starttime ) AS day, UNIX_TIMESTAMP(starttime) as starttime, UNIX_TIMESTAMP(stoptime) as stoptime
+$mdury = $wpdb->get_results("SELECT DAYOFMONTH( FROM_UNIXTIME(starttime) ) AS day, starttime, stoptime
 FROM clock_ins
 WHERE ( 
 	( ".$is." = ".$id.")
 	AND	( 
-			UNIX_TIMESTAMP( starttime )  BETWEEN ".$start->format("U")." AND ".$after->format("U")." 
-		OR	UNIX_TIMESTAMP( stoptime )  BETWEEN ".$start->format("U")." AND ".$after->format("U")." 
-		OR  (duration = 0 && UNIX_TIMESTAMP() BETWEEN ".$start->format("U")." AND ".$after->format("U").")
+			starttime BETWEEN ".$start->format("U")." AND ".$after->format("U")." 
+		OR	stoptime BETWEEN ".$start->format("U")." AND ".$after->format("U")." 
+		OR  (stoptime = 0 && UNIX_TIMESTAMP() BETWEEN ".$start->format("U")." AND ".$after->format("U").")
 	)
 ) ORDER BY starttime
 ", "OBJECT");
