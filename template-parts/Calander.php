@@ -32,7 +32,7 @@ abstract class CalenderUI{
 
 		/* keep going with days.... */
 		for($list_day = 1; $list_day <= $days_in_month; $list_day++):
-			$calendar.= '<td class="calendar-day" style="position:relative">';
+			$calendar.= '<td class="calendar-day d'.$list_day.'" style="position:relative">';
 			$time = DateTime::createFromFormat("Y-n-j", $year."-".$month."-".$list_day);
 				/* add in the day number */
 				$calendar.= '<div class="day-number"><time datetime="'.$time->format(DATE_W3C).'">'.$list_day.'</time></div>';

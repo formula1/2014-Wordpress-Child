@@ -5,6 +5,8 @@ wp_enqueue_script("flot", get_stylesheet_directory_uri() . '/flot/jquery.flot.js
 wp_enqueue_script("flot-cat", get_stylesheet_directory_uri() . '/flot/jquery.flot.categories.js', array('jquery', 'flot'));
 wp_enqueue_script("flot-time", get_stylesheet_directory_uri() . '/flot/jquery.flot.time.js', array('jquery', 'flot'));
 wp_enqueue_script("flot-stacked", get_stylesheet_directory_uri() . '/flot/jquery.flot.stack.js', array('jquery', 'flot'));
+wp_enqueue_script("flot-pie", get_stylesheet_directory_uri() . '/flot/jquery.flot.pie.js', array('jquery', 'flot'));
+wp_enqueue_script("flot-axislabels", get_stylesheet_directory_uri() . '/flotplugs/axislabels/jquery.flot.axislabels.js', array('jquery', 'flot'));
 
 
 get_template_part( "template-parts/charts/daily");

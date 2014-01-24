@@ -13,7 +13,8 @@ global $cl_monthlycounter;
 if(!isset($cl_monthlycounter)) $cl_monthlycounter=0;
 else $cl_monthlycounter++;
 
-
+global $leftovers;
+$leftovers = array();
 class dailyclockins extends CalenderUI{
 
 	public function day_data($string){
@@ -22,17 +23,45 @@ class dailyclockins extends CalenderUI{
 		$day->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 		$day->setTime(0,0,0);
 		$ds = $day->format("U");
-		global $md_dury;
-		if(isset($md_dury[$day->format("j")])){
-		$i64 = pie(25, intval($md_dury[$day->format("j")]->day_total), 24*60*60);
-			return '<a class="dailychoice" href="'.$url.'?date='.$ds.'">
-				<img src="data:image/jpeg;base64, '.$i64.'" />
-			</a>';
-		}else{
-			$i64 = pie(25, 0, 1);
-		return '<img src="data:image/jpeg;base64, '.$i64.'" />';
-
+		$de = $ds+86400;
+		global $mdury;
+		global $leftovers;
+		$total = 0;
+		
+		while(isset($leftovers[0]) && $leftovers[0]["day"] == $day->format("j")){
+			if($leftovers[0]["stoptime"] >  $de){
+				array_push($leftovers, array("day"=>($leftovers[0]["day"]+1), "starttime"=>$de, "stoptime"=>$leftovers[0]["stoptime"]));
+				$leftovers[0]["stoptime"] = $de;
+			}
+			$total += $leftovers[0]["stoptime"] - $leftovers[0]["starttime"];
+			array_shift($leftovers);
 		}
+		
+		
+		while(isset($mdury[0]) && $mdury[0]->day <= $day->format("j")){
+			if($mdury[0]->starttime < $ds) $mdury[0]->starttime = $ds;
+			if($mdury[0]->stoptime == 0) $mdury[0]->stoptime = date("NOW");
+			if($mdury[0]->stoptime >  $de){
+				array_push($leftovers, array("day"=>($mdury[0]->day+1), "starttime"=>$de, "stoptime"=>$mdury[0]->stoptime));
+				$mdury[0]->stoptime = $de;
+			}
+			$total += $mdury[0]->stoptime - $mdury[0]->starttime;
+			array_shift($mdury);
+		}
+		
+		if($total > 0){
+			$di = new DateIntervalEnhanced("PT".$total."S"); 
+			$di->recalculate();
+
+			$ret =  '<a class="dailychoice" href="'.$url.'?date='.$ds.'">
+						<time class="amountoftime" datetime="'.$di->format("%h:%I:%s").'">'.$di->format("%h:%I").'</time> hours worked
+					</a>';
+		}else{
+			$ret =  '<time class="amountoftime" datetime="0:00:00">no work</time>';
+		}
+		$ret .='<div class="chart" style="width:100%;height:100%;position:absolute;top:0px;left:0px;z-index:1;" ></div>';
+		
+		return $ret;
 		
 //		$date = new DateTime();
 //		$date->modify
@@ -60,7 +89,7 @@ else $before = new DateTime('01-12-'.($year-1));
 if($month != 12) $after = new DateTime('01-'.($month+1).'-'.$year);
 else $after = new DateTime('01-1-'.($year+1));
 ?>
-<div class="cl_month">
+<div class="cl_month <?php echo $is.$id ?>">
 <h1><?php echo __("Monthly Report"); ?></h1>
 <div class="monthchooser" style="text-align:center;">
 	<a class="monthchoice" href="<?php echo $url."?date=".$before->format("U"); ?>">&#60;&#60;</a><?php
@@ -71,7 +100,7 @@ else $after = new DateTime('01-1-'.($year+1));
 $cal = new dailyclockins();
 
 global $md_dury;
-$md_dury = $wpdb->get_results( "
+/*$md_dury = $wpdb->get_results( "
 	SELECT DAYOFMONTH( starttime ) AS day , 
 	SUM( CASE duration
 		WHEN 0 THEN	UNIX_TIMESTAMP()-UNIX_TIMESTAMP(starttime)
@@ -86,11 +115,45 @@ $md_dury = $wpdb->get_results( "
 	
 	LIMIT 50
 	", "OBJECT_K" );
-	
+*/
+global $mdury;
+$mdury = $wpdb->get_results("SELECT DAYOFMONTH( starttime ) AS day, UNIX_TIMESTAMP(starttime) as starttime, UNIX_TIMESTAMP(stoptime) as stoptime
+FROM clock_ins
+WHERE ( 
+	( ".$is." = ".$id.")
+	AND	( 
+			UNIX_TIMESTAMP( starttime )  BETWEEN ".$start->format("U")." AND ".$after->format("U")." 
+		OR	UNIX_TIMESTAMP( stoptime )  BETWEEN ".$start->format("U")." AND ".$after->format("U")." 
+		OR  (duration = 0 && UNIX_TIMESTAMP() BETWEEN ".$start->format("U")." AND ".$after->format("U").")
+	)
+) ORDER BY starttime
+", "OBJECT");
 
 echo $cal->get_calender($month,$year);?>
 </div>
-<?php
+<script type="text/javascript">
+jQuery(function($){
+	$(".cl_month.<?php echo $is.$id ?> table td.calendar-day").each(function(index, value){
+		var input = moment.duration($(value).find(".amountoftime").attr("datetime")).asSeconds();
+		console.log(input);
+		var data = [{label:'',data:input}, {label:'',data:86400-input}]
+		$.plot('.cl_month.<?php echo $is.$id ?> table td.calendar-day:eq('+index+') .chart', data, {
+			series: {
+				pie: {
+					show: true,
+					radius: 1,
+					label: {
+						show: false
+					}
+				}
+			},
+			legend: {
+				show: false
+			}
+		});
+	
+	});
 
-date_default_timezone_set('UTC');
-?>
+
+});
+</script>

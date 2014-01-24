@@ -4,3 +4,6 @@
 [submodule "moment"]
 	path = moment
 	url = https://github.com/moment/moment.git
+[submodule "flotplugs/axislabels"]
+	path = flotplugs/axislabels
+	url = https://github.com/xuanluo/flot-axislabels.git

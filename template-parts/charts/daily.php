@@ -33,11 +33,9 @@ $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
 		)
 		ORDER BY ".$request.",starttime ASC
 		", "OBJECT" );
-		echo $id;
 
 ob_start();?>
 <div class="<?php echo $request ?>s daily <?php echo $is.$id; ?>" style="padding:10px;">
-<h3><?php echo $pretty; ?></h3>
 <ul class="vertical">
 <?php	$current = '';
 	foreach($clockins as $clockin){
@@ -117,31 +115,33 @@ $content = ob_get_clean();
 ?>
 <script type="text/javascript">
 	jQuery(function($) {
-		var data = [];
-		var ticks = [];
+		var all = [];
+		var starts = [];
+		var ends = [];
 		var daystart = <?php echo $date->format("U")?>000;
 		var dayend = daystart + 24*60*60*1000;
+		var size = $(".daily.<?php echo $is.$id ?>>ul>li").length;
 		$(".daily.<?php echo $is.$id ?>>ul>li").each(function( indexli, value ) {
 			var el = $(this);
 			var title = el.find("h4").html();
 			var elems = el.find("ul>li");
-			ticks.push([indexli+1, title]);
+			var data = [];
 			elems.each(function( indexel, value){
 				data.push([Date.parse($(value).find(".starttime>time").attr("datetime")),indexli+1]);
+				starts.push([Date.parse($(value).find(".starttime>time").attr("datetime")),indexli+1]);
+
 				data.push([Date.parse($(value).find(".stoptime>time").attr("datetime")), indexli+1]);
+				ends.push([Date.parse($(value).find(".stoptime>time").attr("datetime")), indexli+1]);
+				
 				data.push(null);
 			});
+			all.push({data:data, lines:{show:true,lineWidth:7}, label:title, color:(0x000000+indexli*0xFFFF00/size)});
 		});
-				
-		console.log(data);
-		$.plot(".daily.<?php echo $is.$id ?>>.chart", [ data ], {
-			series: {
-				lines: {
-					show: true,
-					lineWidth:50
-				}
-			},
+		all.push({data:starts, points:{show:true},label:"Started:", color:"#00FF00"});
+		all.push({data:ends, points:{show:true},label:"Ended:", color:"#FF0000"});
+		$.plot(".daily.<?php echo $is.$id ?>>.chart", all, {
 			grid:{
+			clickable: true,
 			markings: function (axes) {
 				var markings = [];
 				for (var x = Math.floor(axes.xaxis.min); x < axes.xaxis.max; x += (120*60*1000))
@@ -154,11 +154,40 @@ $content = ob_get_clean();
 			},
 
 			yaxis: {
-				min:0.5,max:ticks.length+.5,
-				ticks: ticks
+				min:0.5,max:all.length-2+.5,
+				show:false
+			},
+			legend:{
+				show:true,
+				labelFormatter: function(label, series) {
+					if(label == "Started:" || label == "Ended:") return null;
+					// series is the series object for the label
+					return label;
+				}
 			}
 		});
+		
+		$("<div id='cl-daily-tooltip<?php echo $is.$id ?>'></div>").css({
+			position: "absolute",
+			display: "none",
+			border: "1px solid #fdd",
+			padding: "2px",
+			"background-color": "#fee",
+			opacity: 0.80
+		}).appendTo("body");
+		
+		$(".daily.<?php echo $is.$id ?>>.chart").bind("plotclick", function (event, pos, item) {
+			if (item) {
+				var x = moment(item.datapoint[0]);
+				x.zone(0);
 
+				$("#cl-daily-tooltip<?php echo $is.$id ?>").html(item.series.label + x.hours() + ":" + x.minutes())
+					.css({top: item.pageY+5, left: item.pageX+5})
+					.fadeIn(200);
+			} else {
+				$("#cl-daily-tooltip<?php echo $is.$id ?>").hide();
+			}
+		});
 	});	
 </script>
 </div>

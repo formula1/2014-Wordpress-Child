@@ -49,10 +49,15 @@ WHERE (
 
 		$dd[$day]["#total"] +=$time;
 	}
-	
+	$urls = array();
 	foreach($cis as $k=>$ci){
-		if(is_author()) $name = get_the_title($ci->$request);
-		else $name = get_the_author_meta("display_name",$ci->$request);
+		if(is_author()){
+			$name = get_the_title($ci->$request);
+			$urls[$name] = get_permalink($ci->$request);
+		}else{
+			$name = get_the_author_meta("display_name",$ci->$request);
+			$urls[$name] = get_author_posts_url($ci->$request);
+		}
 
 		$st = DateTime::createFromFormat("U", $ci->starttime);
 		if($ci->stoptime == 0)
@@ -105,7 +110,7 @@ for($i=0;$i<7;$i++){
 		$di = new DateIntervalEnhanced("PT".$v."S"); 
 		$di->recalculate();
 
-		?><li><span class="label"><?php echo $k; ?></span>, <span class="value" >
+		?><li><span class="label"><a href="<?php echo $urls[$k]; ?>"><?php echo $k; ?></a></span>, <span class="value" >
 			<time datetime="<?php echo $di->format("%h:%i:%s"); ?>"><?php echo $di->format("%h:%I"); ?></time></span></li>
 		<?php
 		}
@@ -129,13 +134,15 @@ $date->modify("+1 day");
 		$(".cl-weekly-report.<?php echo $is.$id ?>>ul>li").each(function( indexli, value ) {
 			var el = $(this);
 			var title = moment(el.find("h4 time.title").attr("datetime"));
+			title.zone(0);
 			var elems = el.find("ul>li");
+			console.log(title.date(), title.month());
 			ticks.push([indexli, title.date()+"/"+(title.month()+1)]);
 			if(elems.length > 0){
 				elems.each(function( indexel, value){
 					var key = $(this).find(".label").html();
-					if(typeof ref[key] == "undefined"){ ref[key] = ref.length; data[ref[key]] = [];}
-					data[ref[key]].push([indexli, moment.duration($(this).find(".value>time").attr("datetime")).asMilliseconds()]);
+					if(typeof ref[key] == "undefined"){ ref[key] = ref.length; data[ref[key]] = {label:key,data:[]};}
+					data[ref[key]].data.push([indexli, moment.duration($(this).find(".value>time").attr("datetime")).asMilliseconds()]);
 				});
 			}
 		});
@@ -150,15 +157,20 @@ $date->modify("+1 day");
 				},
 				bars: {
 					show: true,
-					barWidth: 0.6
+					barWidth: 0.6,
+					align:"center"
 				}
+			},
+			legend: {
+				show:true,
+				backgroundOpacity:0.0
 			},
 			yaxis: {
 				mode: "time"
 			},
 
 			xaxis: {
-				min:0,max:6,
+				min:-.5,max:6.5,
 				ticks: ticks
 			}
 		});

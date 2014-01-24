@@ -30,6 +30,8 @@ ul.stacked>li:not(.selected){position:absolute;display:none;}
 .cl_month table *{margin:0px;font-size:10px}
 .cl_month>table>tbody>.calendar-row>td{width:50px;padding:4px;position:relative;word-wrap: normal;overflow:visible;}
 .cl_month>table>tbody>.calendar-row>td.calendar-day{height:50px;}
-.cl_month>table>tbody>.calendar-row>td>p{position:absolute;top:4px;left:4px;z-index:1;}
+.cl_month>table>tbody>.calendar-row>td>p{position:relative;z-index:3;text-align:center;}
 .cl_month>table>tbody>.calendar-row>td>.day-number{background-color:#000;color:#FFF;height:12px;width:12px;padding:4px;border-radius:10px;text-align:center;position:relative;z-index:4;}
 
+.dailyreport  ul{display:none;}
+.cl-weekly-report .cl-weekly-days{display:none;}
