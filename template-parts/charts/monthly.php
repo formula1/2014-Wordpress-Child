@@ -9,6 +9,9 @@ $url = (is_author())?get_author_posts_url(get_the_author_meta( 'ID' )):get_perma
 $is = (is_author())?"devuser":"project";
 $request = (is_author())?"project":"devuser";
 $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
+if(is_author()){
+	$search = get_user_meta(get_the_author_meta('ID'), 'github', true );
+}else $search = get_post_meta(get_the_ID(), "github-full_name", true);
 global $cl_monthlycounter;
 if(!isset($cl_monthlycounter)) $cl_monthlycounter=0;
 else $cl_monthlycounter++;
@@ -40,7 +43,7 @@ class dailyclockins extends CalenderUI{
 		
 		while(isset($mdury[0]) && $mdury[0]->day <= $day->format("j")){
 			if($mdury[0]->starttime < $ds) $mdury[0]->starttime = $ds;
-			if($mdury[0]->stoptime == 0) $mdury[0]->stoptime = date("NOW");
+			if($mdury[0]->stoptime == 0) $mdury[0]->stoptime = time();
 			if($mdury[0]->stoptime >  $de){
 				array_push($leftovers, array("day"=>($mdury[0]->day+1), "starttime"=>$de, "stoptime"=>$mdury[0]->stoptime));
 				$mdury[0]->stoptime = $de;
@@ -103,7 +106,7 @@ global $mdury;
 $mdury = $wpdb->get_results("SELECT DAYOFMONTH( FROM_UNIXTIME(starttime) ) AS day, starttime, stoptime
 FROM clock_ins
 WHERE ( 
-	( ".$is." = ".$id.")
+	( ".$is." = '".$search."')
 	AND	( 
 			starttime BETWEEN ".$start->format("U")." AND ".$after->format("U")." 
 		OR	stoptime BETWEEN ".$start->format("U")." AND ".$after->format("U")." 

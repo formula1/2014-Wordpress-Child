@@ -3,12 +3,12 @@
 	global $cl_utils;
 
 
-	if(!isset($_GET["date"])) $date = time();
-	else $date = $_GET["date"];
-	$date = DateTime::createFromFormat("U",$date);
+	if(!isset($_GET["date"])) $diz = time();
+	else $diz = $_GET["date"];
+	$date = DateTime::createFromFormat("U",$diz);
 	$date->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 	$date->setTime(0,0,0);
-	$ed = $_GET["date"]+86400;
+	$ed = $diz+86400;
 
 	$is = (is_author())?"devuser":"project";
 	$request = (is_author())?"project":"devuser";
@@ -19,17 +19,20 @@
 	$total_hours = 0;
 
 $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
+if(is_author()){
+	$search = get_user_meta(get_the_author_meta('ID'), 'github', true);
+}else $search = get_post_meta(get_the_ID(), "github-full_name", true);
 	if(is_author()){
 		$dev = $id;
 	}else{
-		$proj = $id;
+		$proj = $search;
 	}
 
 
 	$clockins = $wpdb->get_results( "
 		SELECT starttime, stoptime, devuser, project 
 		FROM clock_ins WHERE (
-			(".$is." =".$id.")
+			(".$is." ='".$search."')
 			AND(
 				starttime BETWEEN ".$date->format("U")." AND ".$ed." 
 				OR	stoptime  BETWEEN ".$date->format("U")." AND ".$ed." 
@@ -49,11 +52,13 @@ ob_start();?>
 			} ?><li><h4><?php			if($is == "project"){
 				$name = get_the_author_meta("display_name",$clockin->$request);
 				$href = get_author_posts_url( $clockin->$request);
-				$dev = $clockin->$request;
+				$dev = get_users(array('meta_key' => 'github', 'meta_value' => $clockin->$request));
+				$dev = $dev->ID;
 			}else{
-				$name = get_the_title($clockin->$request);
-				$href = get_permalink( $clockin->$request);
-				$proj = $clockin->$request;
+				$proj = get_post("meta_key=github-full_name&meta_value=".$clockin->$request);
+				$name = $proj->post_title;
+				$href = get_permalink( $proj->ID);
+				$proj =$clockin->$request;
 			}
 			$current = $clockin->$request;
 			if(strlen($name) > 20) $name = substr($name,0,17)."...";
@@ -69,9 +74,9 @@ ob_start();?>
 			<time datetime="<?php echo $start->format(DATE_W3C); ?>"><?php echo $start->format("H:m:s"); ?></time>
 		</span>, <?php
 
-		$projname = get_post_meta($proj, "full_name", true);
+		$projname = $proj;
 		$meta = get_user_meta($dev, 'clockin');
-		$devname = $meta[0]["github"];
+		$devname = get_user_meta($dev, "github", true);
 		$token = $meta[0]["token"];
 		$url = "https://api.github.com/repos/".$projname."/commits";
 		$url .= "?author=".$devname;

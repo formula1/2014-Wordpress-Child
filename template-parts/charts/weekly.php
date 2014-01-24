@@ -21,12 +21,15 @@ $is = (is_author())?"devuser":"project";
 $request = (is_author())?"project":"devuser";
 $permalink = (is_author())?get_author_posts_url(get_the_author_meta( 'ID' )):get_permalink();
 $id = (is_author())?get_the_author_meta( 'ID' ):get_the_ID();
+if(is_author()){
+	$meta = get_user_meta(get_the_author_meta('ID'), 'github', true );
+}else $search = get_post_meta(get_the_ID(), "github-full_name", true);
 
 $cis = $wpdb->get_results( "
 SELECT ".$request.", starttime, stoptime
 FROM clock_ins
 WHERE ( 
-	( ".$is." = ".$id.")
+	( ".$is." = '".$search."')
 	AND	( 
 			starttime BETWEEN ".$b." AND ".$e." 
 		OR	stoptime BETWEEN ".$b." AND ".$e." 
@@ -51,6 +54,7 @@ WHERE (
 		$dd[$day]["#total"] +=$time;
 	}
 	$urls = array();
+	
 	foreach($cis as $k=>$ci){
 		if(is_author()){
 			$name = get_the_title($ci->$request);
